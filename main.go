@@ -11,6 +11,7 @@ import (
 const dateFormat = "2006-01-02 15:04:05"
 
 var (
+	flagAll        = flag.Bool("a", false, "Include dot files")
 	flagVerboseDir = flag.Bool("vd", false, "Display the name of the directory currently being processed.")
 	flagQuiet      = flag.Bool("q", false, "Be quiet")
 )
@@ -18,6 +19,7 @@ var (
 type Latest struct {
 	Path  string
 	Stamp time.Time
+	All   bool
 }
 
 func checkDir(path1 string, latest *Latest) error {
@@ -31,6 +33,9 @@ func checkDir(path1 string, latest *Latest) error {
 	for _, entry := range entries {
 		name := entry.Name()
 		full := filepath.Join(path1, name)
+		if !latest.All && len(name) > 0 && name[0] == '.' {
+			continue
+		}
 		if entry.IsDir() {
 			if name == "." || name == ".." {
 				continue
@@ -82,6 +87,7 @@ func mains(args []string) error {
 			fmt.Println(latest.Stamp.Format(dateFormat), latest.Path)
 		}()
 	}
+	latest.All = *flagAll
 	if len(args) <= 0 {
 		return checkDir(".", latest)
 	}
