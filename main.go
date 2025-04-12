@@ -14,11 +14,13 @@ var (
 	flagAll        = flag.Bool("a", false, "Include dot files")
 	flagVerboseDir = flag.Bool("vd", false, "Display the name of the directory currently being processed.")
 	flagQuiet      = flag.Bool("q", false, "Be quiet")
+	flagUntil      = flag.String("until", "2999-01-02 15:04:05", "")
 )
 
 type Latest struct {
 	Path  string
 	Stamp time.Time
+	Until time.Time
 	All   bool
 }
 
@@ -51,6 +53,9 @@ func checkDir(path1 string, latest *Latest) error {
 		}
 		stamp := info.ModTime()
 		if stamp.After(latest.Stamp) {
+			if stamp.After(latest.Until) {
+				continue
+			}
 			if !*flagQuiet {
 				fmt.Println(stamp.Format(dateFormat), full)
 			}
@@ -86,6 +91,13 @@ func mains(args []string) error {
 		defer func() {
 			fmt.Println(latest.Stamp.Format(dateFormat), latest.Path)
 		}()
+	}
+	if stat, err := os.Stat(*flagUntil); err == nil {
+		latest.Until = stat.ModTime()
+	} else if t, err := time.Parse("2006-01-02 15:04:05", *flagUntil); err == nil {
+		latest.Until = t
+	} else {
+		return err
 	}
 	latest.All = *flagAll
 	if len(args) <= 0 {
